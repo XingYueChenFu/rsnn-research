@@ -1,0 +1,106 @@
+experiment:
+  name: rsnn_dvs128gesture
+  save_dir: ./runs/rsnn_dvs128gesture
+  logs_dir: ./logs
+  seed: 42
+
+dataset:
+  name: dvs128gesture
+  root_dir: /home/featurize/data/DVSGesture
+  window_us: 50000
+  spatial_size: 32
+  max_steps: -1
+  polarity_channels: 2
+  normalize: binary
+
+loader:
+  batch_size: 8
+  num_workers: 4
+  pin_memory: true
+
+model:
+  # encoder / decoder shape
+  input_size: 256
+  hidden_size: 512
+  output_size: 11
+  in_channels: 2
+  encoder_base_channels: 32
+  encoder_dropout: 0.3
+  frame_height: 32
+  frame_width: 32
+  output_bias: true
+  readout_mode: rate
+
+  # core neuron dynamics
+  static_repeat_steps: 5
+  beta: 0.9
+  threshold: 1.0
+  reset_mode: subtract
+  surrogate_gamma: 0.5
+  detach_reset: true
+  use_input_drive_each_step: true
+  use_layernorm: false
+  norm_location: none
+  clamp_hidden: null
+  spectral_radius: 0.9
+  weight_clip_value: null
+  use_residual: false
+  residual_alpha: 0.1
+  use_noise: false
+  noise_std: 0.01
+
+  # connectivity / sparsity
+  use_sparse_connectivity: false
+  sparsity: 0.05                  # 连接密度
+  allow_self_connections: false
+  use_learnable_mask: false
+  mask_mode: ste_topk  # ste_topk | soft | contextual_topk
+
+  selector_hidden_dim: 128 # contextual_topk needed # NEW
+  selector_source: input_spike # input | spike | membrane | input_spike | input_membrane | spike_membrane | input_spike_membrane # NEW
+
+  mask_temperature: 1.0
+  mask_ste_scale: 10.0
+  mask_score_init_std: 0.01
+  gate_l1_lambda: 0.0
+  use_activity_tracking: true
+  activity_decay: 0.95
+  target_activity: 0.05           # 激活密度，需要enable_plasticity + use_homeostasis
+
+  # plasticity / adaptation
+  enable_plasticity: false
+  use_hebbian: false
+  hebbian_lr: 1.0e-4
+  hebbian_decay: 0.0
+  hebbian_center: false
+  hebbian_post_type: spike
+  hebbian_normalize_by_length: true
+  use_homeostasis: false
+  homeostasis_lr: 1.0e-4
+  homeostasis_mode: bias
+  use_rewiring: false
+  prune_rate: 0.01 # 剪枝率
+  growth_rate: 0.01 # 生长率
+  keep_constant_density: true  # 剪枝==生长
+  new_weight_scale: 0.01
+
+  # sign constraints
+  use_ei: false
+  excitatory_ratio: 0.8
+
+train:
+  epochs: 50
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  grad_clip: 1.0
+  use_amp: true
+  criterion: cross_entropy
+  aux_loss_weight: 1.0
+  include_aux_loss_in_eval: false
+  apply_plasticity_after_step: false
+  stabilize_after_step: true
+
+runtime:
+  device: auto
+  save_best_only: true
+  log_interval: 1
